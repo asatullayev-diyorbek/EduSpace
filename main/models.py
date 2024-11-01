@@ -1,7 +1,10 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
 from ckeditor.fields import RichTextField
+
+# Rol tanlovlari
+ADMIN, STUDENT = ('admin', 'student')
 
 
 def validate_video_file(value):
@@ -16,7 +19,7 @@ def validate_video_file(value):
 
 class Category(models.Model):
     """
-    Kateqoriya modeli.
+    Kurs kategoriya modeli.
 
     Maydonlar:
         name (CharField): Kateqoriya nomi.
@@ -31,51 +34,45 @@ class Category(models.Model):
         verbose_name_plural = "Kategoriyalar"
 
 
-# 1. Foydalanuvchi profili
-class UserProfile(models.Model):
+class User(AbstractUser):
     """
     Foydalanuvchi profili modeli.
 
     Maydonlar:
-        user (ForeignKey): Foydalanuvchi profili bilan bog'langan asosiy foydalanuvchi.
-        bio (TextField): Foydalanuvchi haqida qisqacha ma'lumot.
-        profile_picture (ImageField): Profil rasmi.
-
-    Meta:
-        ordering: Eng so'nggi qo'shilgan foydalanuvchilar birinchi o'rinda bo'ladi.
-        verbose_name: Model uchun birlik nomi "Foydalanuvchi profili".
-        verbose_name_plural: Model uchun ko'plik nomi "Foydalanuvchilar profillari".
+        role (CharField): Foydalanuvchi roli.
+        bio (TextField): Foydalanuvchi haqida ma'lumot.
+        picture (ImageField): Profil rasmi.
     """
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    ROLE_CHOICES = (
+        (ADMIN, 'Admin'),
+        (STUDENT, 'Student'),
+    )
+    role = models.CharField(max_length=15, choices=ROLE_CHOICES, default=STUDENT)
     bio = models.TextField(blank=True, null=True)
-    profile_picture = models.ImageField(upload_to='profiles/', blank=True, null=True)
+    picture = models.ImageField(upload_to='profiles/', blank=True, null=True)
 
     def __str__(self):
-        return self.user.username
+        return self.get_full_name()
 
     class Meta:
-        ordering = ['-user__date_joined']
-        verbose_name = "Foydalanuvchi profili"
-        verbose_name_plural = "Foydalanuvchilar profillari"
+        ordering = ['-pk']
+        verbose_name = "Foydalanuvchi"
+        verbose_name_plural = "Foydalanuvchilar"
+
+    def get_image(self):
+        return self.picture.url if self.picture else None
 
 
-# 2. Kurslar
 class Course(models.Model):
     """
-    Platformadagi kurslarni ifodalovchi model.
+    Kurs modeli.
 
     Maydonlar:
+        category (ForeignKey): Kursning kategoriyasi.
         name (CharField): Kurs nomi.
-        description (TextField): Kursning batafsil tavsifi.
+        description (TextField): Kurs tavsifi.
         created_by (ForeignKey): Kurs yaratgan foydalanuvchi.
-        created_at (DateTimeField): Kurs yaratilgan vaqt.
-        updated_at (DateTimeField): Kurs oxirgi yangilangan vaqt.
-        is_active (BooleanField): Kurs faol yoki yo‘qligini ko‘rsatuvchi belgi.
-
-    Meta:
-        ordering: Eng so'nggi kurslar birinchi o‘rinda ko‘rsatiladi.
-        verbose_name: Model uchun birlik nomi "Kurs".
-        verbose_name_plural: Model uchun ko'plik nomi "Kurslar".
+        is_active (BooleanField): Kursning faol holati.
     """
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
@@ -94,22 +91,14 @@ class Course(models.Model):
         verbose_name_plural = "Kurslar"
 
 
-# 3. Mavzular (Darslar) kurs uchun
 class Lesson(models.Model):
     """
-    Kursdagi mavzu yoki dars modeli.
+    Kurs darslari modeli.
 
     Maydonlar:
-        course (ForeignKey): Mavzu tegishli bo'lgan kurs.
-        title (CharField): Mavzu yoki dars nomi.
-        content (TextField): Mavzu yoki dars mazmuni.
-        created_at (DateTimeField): Mavzu yaratilgan vaqt.
-        updated_at (DateTimeField): Mavzu oxirgi yangilangan vaqt.
-
-    Meta:
-        ordering: Eng yangi mavzular birinchi ko‘rsatiladi.
-        verbose_name: Model uchun birlik nomi "Mavzu".
-        verbose_name_plural: Model uchun ko'plik nomi "Mavzular".
+        course (ForeignKey): Mavzuning kursi.
+        title (CharField): Mavzu nomi.
+        content (RichTextField): Mavzu mazmuni.
     """
     course = models.ForeignKey(Course, related_name='lessons', on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
@@ -126,22 +115,15 @@ class Lesson(models.Model):
         verbose_name_plural = "Mavzular"
 
 
-# 4. Video darslar
 class Video(models.Model):
     """
-    Darsdagi video material modeli.
+    Dars uchun video modeli.
 
     Maydonlar:
-        lesson (ForeignKey): Video tegishli bo'lgan dars.
+        lesson (ForeignKey): Video dars.
         title (CharField): Video nomi.
-        video_file (FileField): Video fayl.
+        video_file (FileField): Video fayli.
         description (TextField): Video haqida qisqacha ma'lumot.
-        uploaded_at (DateTimeField): Video yuklangan vaqt.
-
-    Meta:
-        ordering: Eng yangi yuklangan videolar birinchi ko'rsatiladi.
-        verbose_name: Model uchun birlik nomi "Video dars".
-        verbose_name_plural: Model uchun ko'plik nomi "Video darslar".
     """
     lesson = models.ForeignKey(Lesson, related_name='videos', on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
@@ -160,19 +142,13 @@ class Video(models.Model):
 
 class File(models.Model):
     """
-    Darsdagi fayl material modeli.
+    Dars uchun fayl modeli.
 
     Maydonlar:
-        lesson (ForeignKey): Video tegishli bo'lgan dars.
+        lesson (ForeignKey): Fayl tegishli dars.
         title (CharField): Fayl nomi.
-        content (FileField): Fayl.
-        description (TextField): Fayl haqida qisqacha ma'lumot.
-        uploaded_at (DateTimeField): Fayl yuklangan vaqt.
-
-    Meta:
-        ordering: Eng yangi yuklangan fayllar birinchi ko'rsatiladi.
-        verbose_name: Model uchun birlik nomi "Dars uchun fayl".
-        verbose_name_plural: Model uchun ko'plik nomi "Dars uchun fayllar".
+        content (FileField): Fayl mazmuni.
+        description (TextField): Fayl haqida ma'lumot.
     """
     lesson = models.ForeignKey(Lesson, related_name='files', on_delete=models.CASCADE)
     title = models.CharField(max_length=200)
@@ -189,7 +165,6 @@ class File(models.Model):
         verbose_name_plural = "Dars uchun fayllar"
 
 
-# 5. Izohlar
 class Comment(models.Model):
     """
     Darsga yozilgan izoh modeli.
@@ -197,13 +172,7 @@ class Comment(models.Model):
     Maydonlar:
         lesson (ForeignKey): Izoh tegishli bo'lgan dars.
         user (ForeignKey): Izoh yozgan foydalanuvchi.
-        content (TextField): Izoh matni.
-        created_at (DateTimeField): Izoh yaratilgan vaqt.
-
-    Meta:
-        ordering: Eng yangi izohlar birinchi ko'rsatiladi.
-        verbose_name: Model uchun birlik nomi "Izoh".
-        verbose_name_plural: Model uchun ko'plik nomi "Izohlar".
+        content (TextField): Izoh mazmuni.
     """
     lesson = models.ForeignKey(Lesson, related_name='comments', on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -219,20 +188,14 @@ class Comment(models.Model):
         verbose_name_plural = "Izohlar"
 
 
-# 6. Baholash (Yoqdi/Yoqmadi)
 class Rating(models.Model):
     """
-    Darsni baholash modeli (Yoqdi yoki Yoqmadi).
+    Dars bahosi modeli (Yoqdi yoki yoqmadi).
 
     Maydonlar:
         lesson (ForeignKey): Baholangan dars.
         user (ForeignKey): Baholovchi foydalanuvchi.
         liked (BooleanField): Yoqdi yoki yoqmadi belgisi.
-
-    Meta:
-        ordering: Eng yangi baholar birinchi ko'rsatiladi.
-        verbose_name: Model uchun birlik nomi "Baholash".
-        verbose_name_plural: Model uchun ko'plik nomi "Baholashlar".
     """
     lesson = models.ForeignKey(Lesson, related_name='ratings', on_delete=models.CASCADE)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -245,3 +208,20 @@ class Rating(models.Model):
         ordering = ['-id']
         verbose_name = "Baholash"
         verbose_name_plural = "Baholashlar"
+
+
+class Update(models.Model):
+    """
+    Yangilanish modeli.
+
+    Maydonlar:
+        title (CharField): Yangilanish sarlavhasi.
+        content (TextField): Yangilanish mazmuni.
+        created_at (DateTimeField): Yangilanish sanasi.
+    """
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.title

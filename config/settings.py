@@ -37,6 +37,10 @@ INSTALLED_APPS = [
     'ckeditor',
     'ckeditor_uploader',
 
+    'django_cleanup',
+
+    'drf_yasg',
+
     # Django REST Framework
     'rest_framework',
     'rest_framework_simplejwt',
@@ -117,6 +121,14 @@ MEDIA_ROOT = BASE_DIR.joinpath('media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_USE_TLS = True
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = "asatullayevblog@gmail.com"
+EMAIL_HOST_PASSWORD = "atnakbgoxoyyylgc "
+
+
 # Rest framework settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -150,6 +162,7 @@ CKEDITOR_CONFIGS = {
 CKEDITOR_UPLOAD_PATH = "media/ckeditor/"
 CKEDITOR_RESTRICT_BY_USER = True
 
+AUTH_USER_MODEL = 'main.User'
 
 # Simple JWT settings
 SIMPLE_JWT = {

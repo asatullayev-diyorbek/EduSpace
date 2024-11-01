@@ -1,7 +1,8 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin as DefaultUserAdmin
-from .models import Comment, Course, Lesson, Category,\
-                    UserProfile, Rating, Video, User, File
+from django.utils.safestring import mark_safe
+
+from .models import Comment, Course, Lesson, Category, \
+    Rating, Video, File, User, Update
 
 
 @admin.register(Category)
@@ -10,17 +11,14 @@ class CategoryAdmin(admin.ModelAdmin):
     list_display_links = ['id', 'name']
 
 
-class UserProfileInline(admin.TabularInline):
-    model = UserProfile
-    extra = 1
+@admin.register(User)
+class UserAdmin(admin.ModelAdmin):
+    list_display = ['pk', 'username', 'first_name', 'last_name', 'role', 'is_staff', 'is_active', 'get_profile_image']
+    list_display_links = ['pk', 'username',]
 
-
-class CustomUserAdmin(DefaultUserAdmin):
-    inlines = [UserProfileInline]
-
-
-admin.site.unregister(User)
-admin.site.register(User, CustomUserAdmin)
+    def get_profile_image(self, obj):
+        return mark_safe(f'<img src="{obj.get_image()}" alt="No image" style="width:75px; height=75px; border-radius:50%" />')
+    get_profile_image.short_description = 'Picture'
 
 
 @admin.register(Course)
@@ -56,3 +54,8 @@ class LessonAdmin(admin.ModelAdmin):
     list_display = ['id', 'course', 'title', 'created_at', 'updated_at']
     list_display_links = ['id', 'course']
     inlines = [VideoInline, FileInline, CommentInline, RatingInline]
+
+
+@admin.register(Update)
+class UpdateAdmin(admin.ModelAdmin):
+    list_display = ['id', 'title', 'content', 'created_at']
