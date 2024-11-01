@@ -112,12 +112,12 @@ class CommentView(ViewSet):
     """
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    def list(self, request, lesson_pk=None):
+    def list(self, request, lesson_pk=None, *args, **kwargs):
         comments = Comment.objects.filter(lesson_id=lesson_pk)
         serializer = CommentSerializer(comments, many=True)
         return Response(serializer.data)
 
-    def create(self, request, lesson_pk=None):
+    def create(self, request, lesson_pk=None, *args, **kwargs):
         serializer = CommentSerializer(data=request.data)
         if serializer.is_valid():
             lesson = Lesson.objects.get(pk=lesson_pk)  # Darsni toping
@@ -134,12 +134,12 @@ class RatingView(ViewSet):
     """
     permission_classes = [IsAuthenticatedOrReadOnly, IsStudent]
 
-    def list(self, request, lesson_pk=None):
+    def list(self, request, lesson_pk=None, *args, **kwargs):
         ratings = Rating.objects.filter(lesson_id=lesson_pk)
         serializer = RatingSerializer(ratings, many=True)
         return Response(serializer.data)
 
-    def create(self, request, lesson_pk=None):
+    def create(self, request, lesson_pk=None, *args, **kwargs):
         existing_rating = Rating.objects.filter(lesson_id=lesson_pk, user=request.user).first()
 
         if existing_rating:

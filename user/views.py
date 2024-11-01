@@ -101,7 +101,7 @@ class LogoutView(APIView):
 
     permission_classes = (IsAuthenticated,)
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         """
         Foydalanuvchini tizimdan chiqarish.
 
